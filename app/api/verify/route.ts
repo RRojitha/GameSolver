@@ -8,8 +8,10 @@ const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key"
 export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get("authorization")
+
+    // If no token → just return guest user
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return NextResponse.json({ error: "No token provided" }, { status: 401 })
+      return NextResponse.json({ user: null })
     }
 
     const token = authHeader.substring(7)
@@ -21,7 +23,7 @@ export async function GET(request: NextRequest) {
       const user = await User.findById(decoded.userId).select("-password")
 
       if (!user) {
-        return NextResponse.json({ error: "User not found" }, { status: 401 })
+        return NextResponse.json({ user: null })
       }
 
       return NextResponse.json({
@@ -31,11 +33,14 @@ export async function GET(request: NextRequest) {
           email: user.email,
         },
       })
+      
     } catch (jwtError) {
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 })
+      // Invalid token → allow guest access
+      return NextResponse.json({ user: null })
     }
+
   } catch (error) {
     console.error("Verify error:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return NextResponse.json({ user: null })
   }
 }
